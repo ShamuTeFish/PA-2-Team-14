@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "`sys/time.h"
 
 typedef struct hash_struct
@@ -15,3 +18,9 @@ long long current_timestamp() {
   return microseconds;  
 } 
 
+int main(){
+FILE * data = fopen("commands.txt", "r");
+
+
+
+}
