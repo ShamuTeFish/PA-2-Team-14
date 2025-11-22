@@ -59,3 +59,4 @@ insert,Geralt of Rivia,84000,56
 search,Nonexistent Character,0,57
 update,Missing Person,99999,58
 print,0,0,59
+

@@ -61,7 +61,7 @@ void insert(char *INname, uint32_t INsalary)
   hashRecord *current = head;
   hashRecord *traverse = head;
   uint32_t NewHas = jenkins_one_at_a_time_hash((const uint8_t*)INname, strlen(INname));
-  
+  rwlock_write_lock(&lock);
   
 
   //If head is null I.E start of list
@@ -70,7 +70,7 @@ void insert(char *INname, uint32_t INsalary)
   fprintf(hlog,"%u: THREAD %d INSERT,%u,%s,%u \n",time,thread_cnt,NewHas,INname,INsalary);
   
   fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
-  rwlock_write_lock(&lock);
+  
 
   hashRecord *dataNone = malloc(1 * sizeof(hashRecord));
   dataNone->hash = NewHas;
@@ -128,9 +128,10 @@ void delete(char * INname){
   hashRecord *traverse = head;
 
   uint32_t tempHash = jenkins_one_at_a_time_hash((const uint8_t*)INname,strlen(INname));
-
+  rwlock_write_lock(&lock);
   if(head == NULL){
     printf("Hashrecord is empty");
+    rwlock_write_unlock(&lock);
     return;
   }
 
@@ -139,11 +140,12 @@ void delete(char * INname){
     hashRecord * dataNone = head;
     head = head->next;
     free(dataNone);
+    rwlock_write_unlock(&lock);
     return;
   }
   int time = current_timestamp();
   fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
-  rwlock_write_lock(&lock);
+  
 
 
   while (traverse != NULL)
@@ -154,11 +156,12 @@ void delete(char * INname){
         hashRecord * del = traverse->next;
        
         traverse->next = traverse->next->next;
-        free(del);
+        
         printf("Deleted record for %u,%s,%d \n",tempHash,del->name,del->salary);
         fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
         rwlock_write_unlock(&lock);
         thread_cnt += 1;
+        free(del);
         return;
       }
       else
@@ -168,7 +171,7 @@ void delete(char * INname){
     }
   }
   
-
+rwlock_write_unlock(&lock);
 }
 
 void update(char * INname, uint32_t newsalary){
@@ -179,10 +182,11 @@ void update(char * INname, uint32_t newsalary){
   int time = current_timestamp();
   fprintf(hlog,"%u: THREAD %d PRINT\n",time,thread_cnt);
   fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
-  rwlock_read_lock(&lock);
+  rwlock_write_lock(&lock);
 
   if(head == NULL){
     printf("Hashrecord is empty");
+    rwlock_write_unlock(&lock);
     return;
   }
 
@@ -191,7 +195,7 @@ void update(char * INname, uint32_t newsalary){
       traverse->salary = newsalary;
       printf("Updated record %u from %u,%s,%d to %u,%s,%d \n",tempHash,tempHash,traverse->name,traverse->salary,tempHash,traverse->name,newsalary);
       fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
-      rwlock_read_unlock(&lock);
+      rwlock_write_unlock(&lock);
       thread_cnt += 1;
       return;
     }
@@ -201,7 +205,7 @@ void update(char * INname, uint32_t newsalary){
   }
   printf("Update failed. Entry %u not found.\n",tempHash);
   fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
-  rwlock_read_unlock(&lock);
+  rwlock_write_unlock(&lock);
   thread_cnt += 1;
   return;
 }
@@ -340,7 +344,6 @@ int main()
             if (data == ',')
             {
               TempThread[j] = '\0';
-              printf("%s",TempThread);
               int thredNumber = atoi(TempThread);
               WaitThread(thredNumber);
               j = 0;
@@ -348,10 +351,6 @@ int main()
             else{
               j += 1;
             }
-            
-            // Throw away threads line until I know what to do with it.
-            sentInstruct = 0;
-            
           }
         }
       }
@@ -369,9 +368,7 @@ int main()
         TempName[i] = '\0';
         sentName = 1;
         i = 0;
-        //printf("%s", TempInstruct);
-        //printf("%s", TempName);
-        
+    
         
         
       }
@@ -392,7 +389,6 @@ int main()
         sal = atoi(TempSal);
 
         i = 0;
-        //printf("%d", sal);
       }
       else
       {
