@@ -265,9 +265,6 @@ void WaitThread(int threadNum){
   for(int i = 0; i< threadNum;i++){
     int time = current_timestamp();
     fprintf(hlog,"%u: THREAD %d WAITING FOR MY TURN\n",time,i);
-    if(i == 0){
-    fprintf(hlog,"%u: THREAD %d AWAKENED FOR WORK\n",time,i);
-    }
   }
 }
 
