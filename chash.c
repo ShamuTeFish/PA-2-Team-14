@@ -61,16 +61,16 @@ void insert(char *INname, uint32_t INsalary)
   hashRecord *current = head;
   hashRecord *traverse = head;
   uint32_t NewHas = jenkins_one_at_a_time_hash((const uint8_t*)INname, strlen(INname));
-  rwlock_write_lock(&lock);
+  
   
 
   //If head is null I.E start of list
   if(head == NULL){
   int time = current_timestamp();
-  fprintf(hlog,"%u: THREAD %d INSERT,%u,%s,%u \n",time,thread_cnt,NewHas,INname,INsalary);
+  fprintf(hlog,"%u: Thread %d INSERT,%u,%s,%u \n",time,thread_cnt,NewHas,INname,INsalary);
   
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
-  
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
+  rwlock_write_lock(&lock);
 
   hashRecord *dataNone = malloc(1 * sizeof(hashRecord));
   dataNone->hash = NewHas;
@@ -80,7 +80,7 @@ void insert(char *INname, uint32_t INsalary)
   head = dataNone;
   
   printf("Inserted %u,%s,%d \n",NewHas,INname,INsalary);
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_write_unlock(&lock);
   thread_cnt += 1;
   return;
@@ -91,7 +91,7 @@ void insert(char *INname, uint32_t INsalary)
   {
     if (strcmp(traverse->name, INname) == 0 || traverse->hash == NewHas)
     {
-      printf("User Already Exists");
+      printf("UserAlready Exsists");
       return;
     }
     else
@@ -102,9 +102,9 @@ void insert(char *INname, uint32_t INsalary)
 
   //if not a duplicate create new node and insert at tail
   int time = current_timestamp();
-  fprintf(hlog,"%u: THREAD %d INSERT,%u,%s,%u \n",time,thread_cnt,NewHas,INname,INsalary);
+  fprintf(hlog,"%u: Thread %d INSERT,%u,%s,%u \n",time,thread_cnt,NewHas,INname,INsalary);
   
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_write_lock(&lock);
 
   hashRecord *tailData = malloc(1 * sizeof(hashRecord));
@@ -119,7 +119,7 @@ void insert(char *INname, uint32_t INsalary)
   }
   current->next = tailData;
   printf("Inserted %u,%s,%d \n",NewHas,INname,INsalary);
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_write_unlock(&lock);
   thread_cnt += 1;
 }
@@ -128,10 +128,9 @@ void delete(char * INname){
   hashRecord *traverse = head;
 
   uint32_t tempHash = jenkins_one_at_a_time_hash((const uint8_t*)INname,strlen(INname));
-  rwlock_write_lock(&lock);
+
   if(head == NULL){
-    printf("Hashrecord is empty");
-    rwlock_write_unlock(&lock);
+    printf("LL is empty");
     return;
   }
 
@@ -140,12 +139,11 @@ void delete(char * INname){
     hashRecord * dataNone = head;
     head = head->next;
     free(dataNone);
-    rwlock_write_unlock(&lock);
     return;
   }
   int time = current_timestamp();
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
-  
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
+  rwlock_write_lock(&lock);
 
 
   while (traverse != NULL)
@@ -156,12 +154,11 @@ void delete(char * INname){
         hashRecord * del = traverse->next;
        
         traverse->next = traverse->next->next;
-        
+        free(del);
         printf("Deleted record for %u,%s,%d \n",tempHash,del->name,del->salary);
-        fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+        fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
         rwlock_write_unlock(&lock);
         thread_cnt += 1;
-        free(del);
         return;
       }
       else
@@ -171,7 +168,7 @@ void delete(char * INname){
     }
   }
   
-rwlock_write_unlock(&lock);
+
 }
 
 void update(char * INname, uint32_t newsalary){
@@ -180,13 +177,12 @@ void update(char * INname, uint32_t newsalary){
   uint32_t tempHash = jenkins_one_at_a_time_hash((const uint8_t*)INname,strlen(INname));
 
   int time = current_timestamp();
-  fprintf(hlog,"%u: THREAD %d PRINT\n",time,thread_cnt);
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: THREAD %d UPDATE,%u,%s,%u\n",time,thread_cnt,tempHash,INname,newsalary);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_write_lock(&lock);
 
   if(head == NULL){
-    printf("Hashrecord is empty");
-    rwlock_write_unlock(&lock);
+    printf("LL is empty");
     return;
   }
 
@@ -194,7 +190,7 @@ void update(char * INname, uint32_t newsalary){
     if(traverse->hash == tempHash){
       traverse->salary = newsalary;
       printf("Updated record %u from %u,%s,%d to %u,%s,%d \n",tempHash,tempHash,traverse->name,traverse->salary,tempHash,traverse->name,newsalary);
-      fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+      fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
       rwlock_write_unlock(&lock);
       thread_cnt += 1;
       return;
@@ -204,7 +200,7 @@ void update(char * INname, uint32_t newsalary){
     }
   }
   printf("Update failed. Entry %u not found.\n",tempHash);
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_write_unlock(&lock);
   thread_cnt += 1;
   return;
@@ -215,19 +211,19 @@ void search(char * INname){
 
   uint32_t tempHash = jenkins_one_at_a_time_hash((const uint8_t*)INname,strlen(INname));
   int time = current_timestamp();
-  fprintf(hlog,"%u: THREAD %d PRINT\n",time,thread_cnt);
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: THREAD %d SEARCH,%u,%s\n",time,thread_cnt,tempHash,INname);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_read_lock(&lock);
 
   if(head == NULL){
-    printf("Hashrecord is empty");
+    printf("LL is empty");
     return;
   }
 
   while(traverse != NULL){
     if(traverse->hash == tempHash){
       printf("Found: %u,%s,%d \n",tempHash,traverse->name,traverse->salary);
-      fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+      fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
       rwlock_read_unlock(&lock);
       thread_cnt += 1;
       return;
@@ -237,7 +233,7 @@ void search(char * INname){
     }
   }
   printf("%s not found\n",INname);
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_read_unlock(&lock);
   thread_cnt += 1;
   return;
@@ -247,12 +243,12 @@ void print(){
 hashRecord *traverse = head;
 
   if(head == NULL){
-    printf("Hash record is empty");
+    printf("LL is empty");
     return;
   }
   int time = current_timestamp();
   fprintf(hlog,"%u: THREAD %d PRINT\n",time,thread_cnt);
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_read_lock(&lock);
   printf("Current Database:\n");
   while(traverse != NULL){
@@ -260,7 +256,7 @@ hashRecord *traverse = head;
     printf("%u,%s,%d\n",traverse->hash,traverse->name,traverse->salary);
     traverse = traverse->next;
   }
-  fprintf(hlog,"%u: THREAD %d ",time,thread_cnt);
+  fprintf(hlog,"%u: Thread %d ",time,thread_cnt);
   rwlock_read_unlock(&lock);
   thread_cnt += 1;
 }
@@ -278,7 +274,7 @@ void FinalTablePrint(){
   fprintf(hlog,"Number of lock releases: %d\n",lockRel);
 
   if(head == NULL){
-    printf("Hash record is empty");
+    printf("LL is empty");
     return;
   }
   
@@ -351,6 +347,10 @@ int main()
             else{
               j += 1;
             }
+            
+            // Throw away threads line until I know what to do with it.
+            sentInstruct = 0;
+            
           }
         }
       }
@@ -368,9 +368,6 @@ int main()
         TempName[i] = '\0';
         sentName = 1;
         i = 0;
-    
-        
-        
       }
       else
       {
