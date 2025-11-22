@@ -277,10 +277,11 @@ void FinalTablePrint(){
     printf("LL is empty");
     return;
   }
-  
+  printf("Final Table:\n");
   fprintf(hlog,"Final Table:\n");
   while(traverse != NULL){
     //Print data per node
+    printf("%u,%s,%d\n",traverse->hash,traverse->name,traverse->salary);
     fprintf(hlog,"%u,%s,%d\n",traverse->hash,traverse->name,traverse->salary);
     traverse = traverse->next;
   }
@@ -449,6 +450,7 @@ int main()
   }
 
   fclose(fileR);
+  //Final print
   FinalTablePrint();
   return 0;
 }
